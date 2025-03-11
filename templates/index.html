@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IA ou Réelle ?</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            flex-direction: column;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            animation: fadeIn 1s ease-in-out;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .image-container {
+            width: 400px;
+            height: 400px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            margin: 0 auto;
+        }
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        button {
+            padding: 12px 25px;
+            margin: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            transition: 0.3s ease-in-out;
+        }
+        .ai-btn {
+            background: #007bff;
+        }
+        .real-btn {
+            background: #dc3545;
+        }
+        .retry-btn {
+            background: #28a745;
+            display: none;
+        }
+        button:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+        .feedback {
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: 15px;
+    min-height: 30px; /* Reserve space */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden; /* Hide but keep space */
+}
+        .correct {
+            color: #28a745;
+        }
+        .wrong {
+            color: #dc3545;
+        }
+
+        /* Leaderboard Styling */
+        .leaderboard {
+            display: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            width: 300px;
+            margin-top: 20px;
+            animation: fadeIn 1s ease-in-out;
+        }
+        .leaderboard h2 {
+            font-size: 22px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        .leaderboard ol {
+            list-style: none;
+            padding: 0;
+        }
+        .leaderboard li {
+            font-size: 18px;
+            padding: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 5px 0;
+        }
+        .leaderboard li:first-child {
+            font-weight: bold;
+            color: #FFD700; /* Gold for top scorer */
+        }
+
+        /* Score Styling */
+        .score-display {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            display: none; /* Initially hidden */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Alors {{ pseudo }}, IA or NOT IA?</h1>
+        <div class="image-container" id="imageContainer">
+            <img id="image" src="{{ image }}" alt="Image">
+        </div>
+        <br>
+        <button class="ai-btn" id="iaButton" onclick="submitGuess(true)">IA</button>
+        <button class="real-btn" id="realButton" onclick="submitGuess(false)">NOT IA</button>
+        <p id="feedback" class="feedback"></p>
+        <p id="score" class="score-display"></p>
+        
+
+        <div class="leaderboard" id="leaderboard">
+            <h2>Classement des joueurs</h2>
+            <ol id="leaderboardList"></ol>
+        </div>
+        <button class="retry-btn" id="retryButton" onclick="retryQuiz()">Recommencer</button>
+    </div>
+
+    <script>
+        function submitGuess(isAI) {
+    fetch('/guess', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_ai: isAI })
+    })
+    .then(response => response.json())
+    .then(data => {
+        let feedbackText = document.getElementById('feedback');
+        let imageElement = document.getElementById('image');
+        let imageContainer = document.getElementById('imageContainer');
+        let iaButton = document.getElementById('iaButton');
+        let realButton = document.getElementById('realButton');
+
+        if (data.finished) {
+            // Hide image and buttons
+            imageContainer.style.display = 'none';
+            iaButton.style.display = 'none';
+            realButton.style.display = 'none';
+            feedbackText.style.display = 'none';
+
+            // Show final score
+            let scoreDisplay = document.getElementById('score');
+            scoreDisplay.textContent = `🎯 Score final: ${data.score}/${data.total}`;
+            scoreDisplay.style.display = 'block';
+
+            // Show leaderboard
+            updateLeaderboard(data.leaderboard);
+            document.getElementById('leaderboard').style.display = 'block';
+            document.getElementById('retryButton').style.display = 'block';
+        } else {
+            let correctAnswer = data.correct_answer; // Get correct answer from backend
+
+            // Show correct or wrong message
+            if (isAI === correctAnswer) {
+                feedbackText.textContent = "✅ CORRECT!";
+                feedbackText.classList.remove("wrong");
+                feedbackText.classList.add("correct");
+            } else {
+                feedbackText.textContent = "❌ WRONG!";
+                feedbackText.classList.remove("correct");
+                feedbackText.classList.add("wrong");
+            }
+            feedbackText.style.visibility = "visible";
+
+            // Wait 1.5 seconds before updating image
+            setTimeout(() => {
+                feedbackText.style.visibility = "hidden"; // Hide but keep space
+                imageElement.src = data.next_image;  // ✅ Update to next image
+            }, 1000);
+        }
+    });
+}
+
+        // Function to update the leaderboard
+        function updateLeaderboard(leaderboardData) {
+            let leaderboardList = document.getElementById('leaderboardList');
+            leaderboardList.innerHTML = ""; // Clear previous entries
+
+            leaderboardData.forEach((player, index) => {
+                let listItem = document.createElement("li");
+                listItem.textContent = `${player.pseudo}: ${player.score}`;
+                if (index === 0) {
+                    listItem.style.fontWeight = "bold";
+                    listItem.style.color = "#FFD700"; // Gold for first place
+                }
+                leaderboardList.appendChild(listItem);
+            });
+        }
+
+        function retryQuiz() {
+            window.location.href = "/";
+        }
+    </script>
+</body>
+</html>
