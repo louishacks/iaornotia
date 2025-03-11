@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA ou Réelle ?</title>
+    <title>AI or Not AI</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         body {
@@ -45,18 +45,60 @@
         }
         .ai-btn { background: #007bff; }
         .real-btn { background: #dc3545; }
-        .retry-btn { background: #28a745; display: none; }
+        .retry-btn {
+    background: #28a745;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 25px;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 5px;
+    color: white;
+    border: none;
+    transition: 0.3s ease-in-out;
+}
+
+.retry-btn:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+/* Center content when quiz ends */
+.finished-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
         .correct { color: #28a745; }
         .wrong { color: #dc3545; }
-        .leaderboard { display: none; background: rgba(255, 255, 255, 0.2); padding: 20px; border-radius: 15px; width: 300px; margin-top: 20px; }
-        .leaderboard ol { list-style: none; padding: 0; }
-        .leaderboard li:first-child { font-weight: bold; color: #FFD700; }
-        .score-display { font-size: 28px; font-weight: bold; margin-top: 20px; padding: 15px; border-radius: 10px; background: rgba(255, 255, 255, 0.1); display: none; }
+        .score-display { 
+            font-size: 28px; 
+            font-weight: bold; 
+            margin-top: 20px; 
+            padding: 15px; 
+            border-radius: 10px; 
+            background: rgba(255, 255, 255, 0.1); 
+            display: none; 
+        }
+        .progress-tracker {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 15px;
+    border-radius: 10px;
+    display: inline-block;
+}
+
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Alors {{ pseudo }}, IA or NOT IA?</h1>
+        <p id="progressTracker" class="progress-tracker">Image <span id="currentImage">1</span> / <span id="totalImages">25</span></p>
+        <h1 id="titleCard">So {{ pseudo }}, IA or NOT IA?</h1>
         <div class="image-container" id="imageContainer">
             <img id="image" src="{{ image }}" alt="Image">
         </div>
@@ -66,51 +108,63 @@
         <p id="feedback"></p>
         <p id="score" class="score-display"></p>
 
-        <div class="leaderboard" id="leaderboard">
-            <h2>Classement des joueurs</h2>
-            <ol id="leaderboardList"></ol>
-        </div>
-        <button class="retry-btn" id="retryButton" onclick="retryQuiz()">Recommencer</button>
+        <button class="retry-btn" id="retryButton" onclick="retryQuiz()">Retry</button>
     </div>
 
     <script>
         var socket = io();
-
+    
         function submitGuess(isAI) {
             socket.emit('submit_guess', { is_ai: isAI });
         }
-
+    
         socket.on('next_image', function(data) {
             let feedbackText = document.getElementById('feedback');
             let imageElement = document.getElementById('image');
-
-            feedbackText.textContent = data.correct_answer ? "✅ CORRECT!" : "❌ WRONG!";
-            feedbackText.className = data.correct_answer ? "correct" : "wrong";
-
+    
+            // ✅ Update "Correct" or "Wrong" feedback
+            if (data.is_correct) {
+                feedbackText.textContent = "✅ CORRECT!";
+                feedbackText.classList.remove("wrong");
+                feedbackText.classList.add("correct");
+            } else {
+                feedbackText.textContent = "❌ WRONG!";
+                feedbackText.classList.remove("correct");
+                feedbackText.classList.add("wrong");
+            }
+    
+            feedbackText.style.visibility = "visible";
+    
+            // ✅ Update Progress Tracker
+            document.getElementById('currentImage').textContent = data.current_index;
+            document.getElementById('totalImages').textContent = data.total_images;
+    
             setTimeout(() => {
-                feedbackText.textContent = "";
+                feedbackText.style.visibility = "hidden";
                 imageElement.src = data.next_image;
             }, 1000);
         });
-
+    
         socket.on('quiz_finished', function(data) {
             document.getElementById('imageContainer').style.display = 'none';
             document.getElementById('iaButton').style.display = 'none';
             document.getElementById('realButton').style.display = 'none';
-
-            document.getElementById('score').textContent = `🎯 Score final: ${data.score}/${data.total}`;
+            document.getElementById('progressTracker').style.display = 'none';
+            document.getElementById('feedback').style.display = 'none';
+            document.getElementById('titleCard').style.display = 'none';
+            let container = document.querySelector(".container");
+        container.classList.add("finished-container");
+    
+            document.getElementById('score').textContent = `🎯 Final Score: ${data.score}/${data.total}`;
             document.getElementById('score').style.display = 'block';
-
-            updateLeaderboard(data.leaderboard);
-            document.getElementById('leaderboard').style.display = 'block';
+    
             document.getElementById('retryButton').style.display = 'block';
         });
-
-        socket.on('leaderboard_update', function(data) {
-            updateLeaderboard(data);
-        });
-
-        function retryQuiz() { window.location.href = "/"; }
+    
+        function retryQuiz() { 
+            window.location.href = "/"; 
+        }
     </script>
+    
 </body>
 </html>
