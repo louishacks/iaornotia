@@ -176,14 +176,14 @@
     }));
 
     // ✅ Save results to Supabase via Netlify Function
-    fetch("/.netlify/functions/saveResults", {
+    fetch("/.netlify/functions/saveresults", {
         method: "POST",
         body: JSON.stringify({ score, totalImages, wrongAnswers }),
         headers: { "Content-Type": "application/json" }
     });
 
     // ✅ Fetch stats (percentile + misclassified images)
-    fetch("/.netlify/functions/getStats")
+    fetch("/.netlify/functions/getstats")
         .then(response => response.json())
         .then(data => {
             document.getElementById("percentile").textContent = `🏆 You scored better than ${data.percentileRank}% of players!`;

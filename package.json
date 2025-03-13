@@ -1,4 +1,5 @@
 {
+    "type": "module",
     "name": "ai-or-not-ai",
     "version": "1.0.0",
     "description": "AI or Not AI game hosted on Netlify with Supabase backend",
