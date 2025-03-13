@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 exports.handler = async function(event, context) {
-  console.log('Début de la fonction getstats');
+  console.log('=== DÉBUT DE LA FONCTION GETSTATS ===');
   
   const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -9,59 +9,97 @@ exports.handler = async function(event, context) {
   );
 
   try {
-    console.log('Récupération des images les plus mal classifiées...');
     // Récupérer les 3 images les plus mal classifiées
     const { data: topImages, error: imagesError } = await supabase
       .from('image_stats')
-      .select('url, wrong_count')
+      .select('*')
       .order('wrong_count', { ascending: false })
       .limit(3);
 
-    if (imagesError) {
-      console.error('Erreur lors de la récupération des top images:', imagesError);
-      throw imagesError;
-    }
-    console.log('Top images récupérées:', topImages);
+    if (imagesError) throw imagesError;
 
-    console.log('Récupération des scores...');
-    // Récupérer tous les scores
+    console.log('Images récupérées:', topImages);
+
+    // Compter le nombre total de tentatives dans player_scores
+    const { count: totalAttempts, error: countError } = await supabase
+      .from('player_scores')
+      .select('id', { count: 'exact' });  // Compte le nombre total de lignes
+
+    if (countError) {
+      console.error('Erreur lors du comptage des tentatives dans player_scores:', countError);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ message: 'Erreur lors du comptage des tentatives' })
+      };
+    }
+
+    console.log(`Nombre total de tentatives dans player_scores: ${totalAttempts}`);
+
+    // Vérifiez si totalAttempts est 0
+    if (totalAttempts === 0) {
+      console.warn('Aucune entrée trouvée dans player_scores. Vérifiez la table pour vous assurer qu\'il y a des données.');
+    }
+
+    // Traiter chaque image une par une
+    const updatedTopImages = [];
+    for (const image of topImages) {
+      console.log(`\n=== Traitement de l'image ${image.url} ===`);
+      
+      // Compter les mauvaises réponses
+      const wrongAnswers = image.wrong_count;  // Utiliser le wrong_count existant
+
+      // Mise à jour dans image_stats
+      const { data: updateResult, error: updateError } = await supabase
+        .from('image_stats')
+        .update({
+          wrong_count: wrongAnswers,
+          total_attempts: totalAttempts  // Mettre à jour total_attempts avec le total global
+        })
+        .eq('url', image.url)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error(`Erreur mise à jour ${image.url}:`, updateError);
+      } else {
+        console.log('Résultat de la mise à jour:', updateResult);
+        updatedTopImages.push(updateResult);
+      }
+    }
+
+    console.log('\n=== Images finales mises à jour ===');
+    console.log(JSON.stringify(updatedTopImages, null, 2));
+
+    // Calcul du percentile (code existant)
     const { data: scores, error: scoresError } = await supabase
       .from('player_scores')
       .select('score');
 
-    if (scoresError) {
-      console.error('Erreur lors de la récupération des scores:', scoresError);
-      throw scoresError;
-    }
-    console.log('Scores récupérés:', scores);
-
-    // Calculer le percentile du dernier score
     let percentileRank = 0;
-    if (scores && scores.length > 0) {
+    if (scores?.length > 0) {
       const lastScore = scores[scores.length - 1].score;
       const lowerScores = scores.filter(s => s.score < lastScore).length;
       percentileRank = (lowerScores / scores.length) * 100;
-      console.log('Calcul du percentile:', { lastScore, lowerScores, total: scores.length, percentileRank });
     }
 
-    const headers = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Content-Type': 'application/json'
-    };
+    console.log('=== FIN DE LA FONCTION GETSTATS ===');
 
     return {
       statusCode: 200,
-      headers,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        topImages: topImages || [],
+        topImages: updatedTopImages,
         percentileRank: percentileRank.toFixed(2)
       })
     };
 
   } catch (error) {
-    console.error('Erreur dans getstats:', error);
+    console.error('ERREUR DANS GETSTATS:', error);
     return {
       statusCode: 500,
       headers: {
@@ -70,8 +108,7 @@ exports.handler = async function(event, context) {
       },
       body: JSON.stringify({ 
         message: 'Erreur lors de la récupération des statistiques',
-        error: error.message,
-        stack: error.stack
+        error: error.message
       })
     };
   }

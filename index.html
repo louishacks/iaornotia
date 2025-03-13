@@ -59,7 +59,7 @@
         .correct { color: #28a745; }
         .wrong { color: #dc3545; }
         .score-display {
-            font-size: clamp(18px, 3vw, 24px);
+            font-size: clamp(24px, 3vw, 32px);
             font-weight: bold;
             margin-top: 15px;
         }
@@ -135,6 +135,25 @@
             text-align: center;
             width: 100%;
         }
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .footer-logo {
+            width: clamp(100px, 15vw, 150px);
+            height: auto;
+            transition: opacity 0.3s ease;
+        }
+        .footer-logo:hover {
+            opacity: 0.8;
+        }
+        .attempt-count {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -152,11 +171,16 @@
         <p id="percentile"></p>
 <div id="misclassified"></div>
 
-        <button class="retry-btn" id="retryButton" onclick="restartGame()">Recommencer</button>
+        <button class="retry-btn" id="retryButton" onclick="restartGame()">Retry</button>
     </div>
 
     <footer class="footer">
-        &copy; 2025. All rights reserved Digitalizers. Built By Citizen Devs.
+        <div class="footer-content">
+            <a href="https://digitalizers.ch/" target="_blank" rel="noopener noreferrer">
+                <img src="static/images/logo.png" alt="Digitalizers Logo" class="footer-logo">
+            </a>
+            <p>&copy; 2025. All rights reserved Digitalizers. Built By Citizen Devs.</p>
+        </div>
     </footer>
 
     <script>
@@ -244,7 +268,7 @@
             document.getElementById("feedback").style.display = "none";
             document.getElementById("titleCard").style.display = "none";
 
-            document.getElementById("score").textContent = `🎯 Score final: ${score}/${totalImages}`;
+            document.getElementById("score").textContent = `🎯 Score : ${score}/${totalImages}`;
             document.getElementById("score").style.display = "block";
             document.getElementById("retryButton").style.display = "block";
 
@@ -272,17 +296,18 @@
                     console.log('TopImages reçues:', data.topImages);
                     document.getElementById("percentile").innerHTML = `
                         <div class="stats-container">
-                            <h2>🏆 Statistiques</h2>
+                            <h2>🏆 Stats</h2>
                             <p>You did better than ${data.percentileRank}% of players !</p>
                             
-                            <h3>📊 Images with the most misclassififaction :</h3>
+                            <h3>📊 Most misclassified :</h3>
                             <div class="misclassified-images">
                                 ${data.topImages.map(img => {
                                     console.log('Traitement image:', img);
                                     return `
                                         <div class="misclassified-item">
                                             <img src="${img.url}" alt="Image difficile" class="mini-image">
-                                            <p>Wrongly Classified ${img.wrong_count} times</p>
+                                            <p>Misclassified ${Math.round((img.wrong_count / img.total_attempts) * 100)}% of times</p>
+                                            <p class="attempt-count">(${img.wrong_count} sur ${img.total_attempts} tentatives)</p>
                                         </div>
                                     `;
                                 }).join('')}
