@@ -91,6 +91,9 @@
             text-align: center;
             flex: 1 1 250px;
             max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .mini-image {
             width: min(150px, 100%);
@@ -98,6 +101,7 @@
             object-fit: cover;
             border-radius: 5px;
             margin-bottom: 10px;
+            display: block;
         }
         h2, h3 {
             color: white;
@@ -222,6 +226,8 @@
             document.getElementById("iaButton").style.display = "none";
             document.getElementById("realButton").style.display = "none";
             document.getElementById("progressTracker").style.display = "none";
+            document.getElementById("feedback").style.display = "none";
+            document.getElementById("titleCard").style.display = "none";
 
             document.getElementById("score").textContent = `🎯 Score final: ${score}/${totalImages}`;
             document.getElementById("score").style.display = "block";
@@ -248,6 +254,7 @@
                 .then(response => response.json())
                 .then(data => {
                     console.log('Données reçues de getstats:', data);
+                    console.log('TopImages reçues:', data.topImages);
                     document.getElementById("percentile").innerHTML = `
                         <div class="stats-container">
                             <h2>🏆 Statistiques</h2>
@@ -255,15 +262,19 @@
                             
                             <h3>📊 Images les plus difficiles à identifier :</h3>
                             <div class="misclassified-images">
-                                ${data.topImages.map(img => `
-                                    <div class="misclassified-item">
-                                        <img src="${img.url}" alt="Image difficile" class="mini-image">
-                                        <p>Mal identifiée ${img.wrong_count} fois</p>
-                                    </div>
-                                `).join('')}
+                                ${data.topImages.map(img => {
+                                    console.log('Traitement image:', img);
+                                    return `
+                                        <div class="misclassified-item">
+                                            <img src="${img.url}" alt="Image difficile" class="mini-image">
+                                            <p>Mal identifiée ${img.wrong_count} fois</p>
+                                        </div>
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
                     `;
+                    console.log('HTML généré:', document.getElementById("percentile").innerHTML);
                 })
                 .catch(error => {
                     console.error("Erreur lors de la récupération des stats:", error);
@@ -283,12 +294,13 @@
             document.getElementById("imageContainer").style.display = "block";
             document.getElementById("iaButton").style.display = "inline-block";
             document.getElementById("realButton").style.display = "inline-block";
-            document.getElementById("imageContainer").style.display = "block";
             document.getElementById("progressTracker").style.display = "block";
             document.getElementById("titleCard").style.display = "block";
             document.getElementById("feedback").style.display = "block";
             document.getElementById("score").style.display = "none";
             document.getElementById("retryButton").style.display = "none";
+            document.getElementById("percentile").innerHTML = "";
+            document.getElementById("misclassified").innerHTML = "";
             loadImage();
         }
         shuffleArray(images);
