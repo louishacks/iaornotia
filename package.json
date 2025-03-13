@@ -1,26 +1,30 @@
 {
-    "type": "module",
     "name": "ai-or-not-ai",
     "version": "1.0.0",
     "description": "AI or Not AI game hosted on Netlify with Supabase backend",
     "main": "index.js",
     "scripts": {
-      "dev": "netlify dev",
-      "build": "netlify build",
-      "deploy": "netlify deploy --prod"
+        "dev": "netlify dev",
+        "build": "netlify build",
+        "deploy": "netlify deploy --prod"
     },
     "dependencies": {
-      "@supabase/supabase-js": "^2.1.3",
-      "dotenv": "^16.0.3"
+        "@supabase/supabase-js": "latest",
+        "dotenv": "^16.0.3"
     },
     "devDependencies": {
-      "netlify-cli": "^15.5.0"
+        "netlify-cli": "^15.5.0"
     },
     "engines": {
-      "node": ">=14.0.0"
+        "node": ">=14.0.0"
     },
-    "keywords": ["Netlify", "Supabase", "Flask", "AI", "Game"],
+    "keywords": [
+        "Netlify",
+        "Supabase",
+        "Flask",
+        "AI",
+        "Game"
+    ],
     "author": "Your Name",
     "license": "MIT"
-  }
-  
+}

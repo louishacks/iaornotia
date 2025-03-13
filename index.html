@@ -4,45 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI or Not AI</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         body {
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #ff9a9e, #fad0c4);
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             text-align: center;
             color: white;
             flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
         }
         .container {
             background: rgba(255, 255, 255, 0.2);
-            padding: 30px;
+            padding: clamp(15px, 3vw, 30px);
             border-radius: 15px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            width: min(95%, 800px);
+            margin: auto;
         }
         .image-container {
-            width: 400px;
-            height: 400px;
+            width: min(400px, 90vw);
+            height: min(400px, 90vw);
             border-radius: 10px;
             background: rgba(255, 255, 255, 0.1);
+            margin: auto;
         }
         img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: inherit;
         }
         button {
-            padding: 12px 25px;
-            margin: 10px;
-            font-size: 18px;
+            padding: clamp(8px, 2vw, 12px) clamp(15px, 3vw, 25px);
+            margin: clamp(5px, 1vw, 10px);
+            font-size: clamp(14px, 2.5vw, 18px);
             cursor: pointer;
             border-radius: 5px;
             color: white;
             border: none;
             transition: 0.3s ease-in-out;
+            width: min(200px, 45%);
         }
         .ai-btn { background: #007bff; }
         .real-btn { background: #dc3545; }
@@ -50,18 +56,69 @@
         .correct { color: #28a745; }
         .wrong { color: #dc3545; }
         .score-display {
-            font-size: 24px;
+            font-size: clamp(18px, 3vw, 24px);
             font-weight: bold;
             margin-top: 15px;
         }
         .progress-tracker {
-            font-size: 20px;
+            font-size: clamp(16px, 2.5vw, 20px);
             font-weight: bold;
             margin-bottom: 10px;
             background: rgba(255, 255, 255, 0.2);
-            padding: 8px 15px;
+            padding: clamp(5px, 1vw, 8px) clamp(10px, 2vw, 15px);
             border-radius: 10px;
             display: inline-block;
+        }
+        .stats-container {
+            background: rgba(255, 255, 255, 0.2);
+            padding: clamp(10px, 2vw, 20px);
+            border-radius: 10px;
+            margin-top: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .misclassified-images {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: clamp(10px, 2vw, 20px);
+            margin-top: 15px;
+        }
+        .misclassified-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: clamp(5px, 1vw, 10px);
+            border-radius: 8px;
+            text-align: center;
+            flex: 1 1 250px;
+            max-width: 300px;
+        }
+        .mini-image {
+            width: min(150px, 100%);
+            height: min(150px, 100%);
+            object-fit: cover;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        h2, h3 {
+            color: white;
+            margin-bottom: 15px;
+            font-size: clamp(18px, 2.5vw, 24px);
+        }
+        .stats-container p {
+            font-size: clamp(14px, 2vw, 18px);
+            margin: 10px 0;
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            .misclassified-item {
+                flex: 1 1 100%;
+            }
+            button {
+                width: 80%;
+                margin: 5px auto;
+            }
         }
     </style>
 </head>
@@ -161,42 +218,63 @@
         }
 
         function endGame() {
-    document.getElementById("imageContainer").style.display = "none";
-    document.getElementById("iaButton").style.display = "none";
-    document.getElementById("realButton").style.display = "none";
+            document.getElementById("imageContainer").style.display = "none";
+            document.getElementById("iaButton").style.display = "none";
+            document.getElementById("realButton").style.display = "none";
+            document.getElementById("progressTracker").style.display = "none";
 
-    document.getElementById("score").textContent = `🎯 Score final: ${score}/${totalImages}`;
-    document.getElementById("score").style.display = "block";
-    document.getElementById("retryButton").style.display = "block";
+            document.getElementById("score").textContent = `🎯 Score final: ${score}/${totalImages}`;
+            document.getElementById("score").style.display = "block";
+            document.getElementById("retryButton").style.display = "block";
 
-    // ✅ Collect wrong answers
-    let wrongAnswers = images.map((img, index) => ({
-        url: img.url,
-        wasWrong: (playerGuesses[index] !== img.is_ai)
-    }));
+            // Collect wrong answers
+            let wrongAnswers = images.map((img, index) => ({
+                url: img.url,
+                wasWrong: (playerGuesses[index] !== img.is_ai)
+            }));
 
-    // ✅ Save results to Supabase via Netlify Function
-    fetch("/.netlify/functions/saveresults", {
-        method: "POST",
-        body: JSON.stringify({ score, totalImages, wrongAnswers }),
-        headers: { "Content-Type": "application/json" }
-    });
-
-    // ✅ Fetch stats (percentile + misclassified images)
-    fetch("/.netlify/functions/getstats")
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById("percentile").textContent = `🏆 You scored better than ${data.percentileRank}% of players!`;
-
-            let imagesHTML = "";
-            data.topImages.forEach(img => {
-                imagesHTML += `<p>❌ ${img.url} (Wrong ${img.wrong_count} times)</p>`;
+            // Save results to Supabase via Netlify Function
+            fetch("/.netlify/functions/saveresults", {
+                method: "POST",
+                body: JSON.stringify({ score, totalImages, wrongAnswers }),
+                headers: { "Content-Type": "application/json" }
+            })
+            .catch(error => {
+                console.error("Erreur lors de la sauvegarde des résultats:", error);
             });
 
-            document.getElementById("misclassified").innerHTML = imagesHTML;
-        });
-}
-
+            // Fetch and display stats
+            fetch("/.netlify/functions/getstats")
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Données reçues de getstats:', data);
+                    document.getElementById("percentile").innerHTML = `
+                        <div class="stats-container">
+                            <h2>🏆 Statistiques</h2>
+                            <p>Vous avez fait mieux que ${data.percentileRank}% des joueurs !</p>
+                            
+                            <h3>📊 Images les plus difficiles à identifier :</h3>
+                            <div class="misclassified-images">
+                                ${data.topImages.map(img => `
+                                    <div class="misclassified-item">
+                                        <img src="${img.url}" alt="Image difficile" class="mini-image">
+                                        <p>Mal identifiée ${img.wrong_count} fois</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la récupération des stats:", error);
+                    document.getElementById("percentile").innerHTML = `
+                        <div class="stats-container">
+                            <h2>❌ Erreur</h2>
+                            <p>Impossible de charger les statistiques. Veuillez réessayer plus tard.</p>
+                        </div>
+                    `;
+                });
+        }
 
         function restartGame() {
             currentIndex = 0;
