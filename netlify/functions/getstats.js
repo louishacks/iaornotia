@@ -75,11 +75,20 @@ exports.handler = async function(event, context) {
       .from('player_scores')
       .select('score');
 
+    if (scoresError) {
+      console.error('Erreur lors de la récupération des scores:', scoresError);
+    }
+
+    console.log('Scores récupérés:', scores);
+    console.log('Nombre total de scores:', scores.length);
+
     let percentileRank = 0;
     if (scores?.length > 0) {
-      const lastScore = scores[scores.length - 1].score;
-      const lowerScores = scores.filter(s => s.score < lastScore).length;
-      percentileRank = (lowerScores / scores.length) * 100;
+      const lastScore = scores[scores.length - 1].score; // Dernier score
+      const lowerScores = scores.filter(s => s.score < lastScore).length; // Compte les scores inférieurs
+      console.log('Dernier score:', lastScore);
+      console.log('Scores inférieurs:', lowerScores);
+      percentileRank = (lowerScores / scores.length) * 100; // Calcul du percentile
     }
 
     console.log('=== FIN DE LA FONCTION GETSTATS ===');
