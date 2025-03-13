@@ -258,16 +258,16 @@
                     document.getElementById("percentile").innerHTML = `
                         <div class="stats-container">
                             <h2>🏆 Statistiques</h2>
-                            <p>Vous avez fait mieux que ${data.percentileRank}% des joueurs !</p>
+                            <p>You did better than ${data.percentileRank}% of players !</p>
                             
-                            <h3>📊 Images les plus difficiles à identifier :</h3>
+                            <h3>📊 Images with the most misclassififaction :</h3>
                             <div class="misclassified-images">
                                 ${data.topImages.map(img => {
                                     console.log('Traitement image:', img);
                                     return `
                                         <div class="misclassified-item">
                                             <img src="${img.url}" alt="Image difficile" class="mini-image">
-                                            <p>Mal identifiée ${img.wrong_count} fois</p>
+                                            <p>Wrongly Classified ${img.wrong_count} times</p>
                                         </div>
                                     `;
                                 }).join('')}
